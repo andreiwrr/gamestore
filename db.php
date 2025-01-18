@@ -1,132 +1,116 @@
 <?php
-$host = 'localhost';
-$username = 'root';
-$password = '';
-$dbname = 'gamestore';
+$host = 'localhost';  // Schimbă cu detaliile serverului tău
+$user = 'root';       // Numele utilizatorului MySQL
+$password = '';       // Parola MySQL
+$database = 'gamestore'; // Numele bazei de date
 
-// Conectare la baza de date
-$conn = mysqli_connect($host, $username, $password, $dbname);
+// Conectează-te la baza de date
+$conn = mysqli_connect($host, $user, $password, $database);
 
-// Verificăm dacă conexiunea a reușit
+// Verifică dacă conexiunea a fost realizată cu succes
 if (!$conn) {
     die("Connection failed: " . mysqli_connect_error());
 }
 
-// Funcția pentru obținerea tuturor jocurilor
+// Funcție pentru obținerea tuturor jocurilor
 function get_all_games() {
     global $conn;
-    $sql = "SELECT id, title, description, cover, price, discount_price, genre, release_date FROM games";
+    $sql = "SELECT * FROM games";
     $result = mysqli_query($conn, $sql);
-
-    if (!$result) {
-        echo "Error retrieving games: " . mysqli_error($conn);
-        return [];
-    }
-
-    return mysqli_fetch_all($result, MYSQLI_ASSOC); // obține toate jocurile într-un singur pas
+    return mysqli_fetch_all($result, MYSQLI_ASSOC);
 }
 
-// Funcția pentru obținerea jocurilor după gen
+// Funcție pentru obținerea jocurilor în funcție de gen
 function get_games_by_genre($genre) {
     global $conn;
-    $sql = "SELECT id, title, description, cover, price, discount_price, genre, release_date FROM games WHERE genre = ?";
+    $sql = "SELECT * FROM games WHERE genre = ?";
     $stmt = mysqli_prepare($conn, $sql);
-
-    if ($stmt === false) {
-        echo "Error preparing query: " . mysqli_error($conn);
-        return [];
-    }
-
     mysqli_stmt_bind_param($stmt, "s", $genre);
-    if (!mysqli_stmt_execute($stmt)) {
-        echo "Error executing query: " . mysqli_stmt_error($stmt);
-        mysqli_stmt_close($stmt);
-        return [];
-    }
-
-    $result = mysqli_stmt_get_result($stmt);
-    $games = mysqli_fetch_all($result, MYSQLI_ASSOC); // obține toate jocurile pe gen într-un singur pas
-
-    mysqli_stmt_close($stmt);
-    return $games;
-}
-
-// Funcția pentru adăugarea unui joc în wishlist
-function add_to_wishlist($user_id, $game_id) {
-    global $conn;
-
-    // Verificăm dacă jocul există în baza de date
-    $sql = "SELECT id FROM games WHERE id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $game_id);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
-    $game = mysqli_fetch_assoc($result);
-    mysqli_stmt_close($stmt);
-
-    // Dacă jocul există, verificăm dacă este deja în wishlist
-    if ($game) {
-        $sql_check = "SELECT id FROM wishlist WHERE user_id = ? AND game_id = ?";
-        $stmt_check = mysqli_prepare($conn, $sql_check);
-        mysqli_stmt_bind_param($stmt_check, "ii", $user_id, $game_id);
-        mysqli_stmt_execute($stmt_check);
-        $check_result = mysqli_stmt_get_result($stmt_check);
-        mysqli_stmt_close($stmt_check);
-
-        if (mysqli_num_rows($check_result) == 0) {
-            // Jocul nu este în wishlist, îl adăugăm
-            $sql_insert = "INSERT INTO wishlist (user_id, game_id) VALUES (?, ?)";
-            $stmt_insert = mysqli_prepare($conn, $sql_insert);
-            mysqli_stmt_bind_param($stmt_insert, "ii", $user_id, $game_id);
-            $success = mysqli_stmt_execute($stmt_insert);
-            mysqli_stmt_close($stmt_insert);
-            return $success;
-        } else {
-            // Jocul este deja în wishlist
-            return false;
-        }
-    } else {
-        // Jocul nu există
-        return false;
-    }
+    return mysqli_fetch_all($result, MYSQLI_ASSOC);
 }
 
-// Funcția pentru obținerea jocurilor din wishlist
+// Funcție pentru obținerea wishlist-ului unui utilizator
 function get_wishlist($user_id) {
     global $conn;
-    $sql = "SELECT games.id, games.title, games.description, games.cover, games.price, games.discount_price, games.genre, games.release_date 
+
+    $sql = "SELECT games.id, games.title, games.cover, games.genre, games.description, games.price, games.discount_price 
             FROM wishlist 
             JOIN games ON wishlist.game_id = games.id 
             WHERE wishlist.user_id = ?";
     $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $user_id);
 
-    if (!mysqli_stmt_execute($stmt)) {
-        echo "Error executing query: " . mysqli_stmt_error($stmt);
-        mysqli_stmt_close($stmt);
-        return [];
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, "i", $user_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+
+        if ($result) {
+            $wishlistGames = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            return $wishlistGames;
+        }
     }
 
-    $result = mysqli_stmt_get_result($stmt);
-    $wishlist = mysqli_fetch_all($result, MYSQLI_ASSOC); // obține toate jocurile din wishlist într-un singur pas
-
-    mysqli_stmt_close($stmt);
-    return $wishlist;
+    return []; // Dacă nu există jocuri în wishlist, întoarcem un array gol
 }
 
-// Funcția pentru a șterge un joc din wishlist
-function remove_game_from_wishlist($user_id, $game_id) {
+// Funcție pentru adăugarea unui joc în wishlist
+function add_to_wishlist($user_id, $game_title) {
     global $conn;
-    $sql = "DELETE FROM wishlist WHERE user_id = ? AND game_id = ?";
-    $stmt = mysqli_prepare($conn, $sql);
-    mysqli_stmt_bind_param($stmt, "ii", $user_id, $game_id);
-    
-    if (mysqli_stmt_execute($stmt)) {
-        mysqli_stmt_close($stmt);
-        return true;
-    } else {
-        mysqli_stmt_close($stmt);
-        return false;
+
+    // Verifică dacă jocul există deja în wishlist
+    $sql_check = "SELECT * FROM wishlist JOIN games ON wishlist.game_id = games.id 
+                  WHERE wishlist.user_id = ? AND games.title = ?";
+    $stmt_check = mysqli_prepare($conn, $sql_check);
+    mysqli_stmt_bind_param($stmt_check, "is", $user_id, $game_title);
+    mysqli_stmt_execute($stmt_check);
+    $result_check = mysqli_stmt_get_result($stmt_check);
+
+    if (mysqli_num_rows($result_check) > 0) {
+        return false; // Jocul există deja în wishlist
     }
+
+    // Obține ID-ul jocului pe baza titlului
+    $sql_game_id = "SELECT id FROM games WHERE title = ?";
+    $stmt_game_id = mysqli_prepare($conn, $sql_game_id);
+    mysqli_stmt_bind_param($stmt_game_id, "s", $game_title);
+    mysqli_stmt_execute($stmt_game_id);
+    $result_game_id = mysqli_stmt_get_result($stmt_game_id);
+    $game = mysqli_fetch_assoc($result_game_id);
+
+    if ($game) {
+        $game_id = $game['id'];
+
+        // Adaugă jocul în wishlist
+        $sql_add = "INSERT INTO wishlist (user_id, game_id) VALUES (?, ?)";
+        $stmt_add = mysqli_prepare($conn, $sql_add);
+        mysqli_stmt_bind_param($stmt_add, "ii", $user_id, $game_id);
+        return mysqli_stmt_execute($stmt_add);
+    }
+
+    return false; // Jocul nu a fost găsit
+}
+
+// Funcție pentru a șterge un joc din wishlist
+function remove_from_wishlist($user_id, $game_id) {
+    global $conn;
+
+    // Verifică dacă jocul există în wishlist
+    $sql_check = "SELECT * FROM wishlist WHERE user_id = ? AND game_id = ?";
+    $stmt_check = mysqli_prepare($conn, $sql_check);
+    mysqli_stmt_bind_param($stmt_check, "ii", $user_id, $game_id);
+    mysqli_stmt_execute($stmt_check);
+    $result_check = mysqli_stmt_get_result($stmt_check);
+
+    if (mysqli_num_rows($result_check) > 0) {
+        // Dacă jocul există, îl ștergem din wishlist
+        $sql_delete = "DELETE FROM wishlist WHERE user_id = ? AND game_id = ?";
+        $stmt_delete = mysqli_prepare($conn, $sql_delete);
+        mysqli_stmt_bind_param($stmt_delete, "ii", $user_id, $game_id);
+        return mysqli_stmt_execute($stmt_delete);
+    }
+
+    return false; // Jocul nu există în wishlist
 }
 ?>
