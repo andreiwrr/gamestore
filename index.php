@@ -1,8 +1,8 @@
 <?php
 session_start();
-require 'db.php';
+require 'db.php'; // Asigură-te că ai inclus corect fișierul de conexiune la baza de date
 
-// Verifică dacă utilizatorul este conectat
+// Verifică dacă utilizatorul este autentificat
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
@@ -10,13 +10,17 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id']; // ID-ul utilizatorului conectat
 
+// Filtrarea jocurilor pe bază de gen
 $selectedCategory = isset($_GET['category']) ? $_GET['category'] : '';
+
+// Dacă există o categorie selectată, filtrăm jocurile pe acel gen
 if ($selectedCategory != '') {
     $filteredGames = get_games_by_genre($selectedCategory);
 } else {
-    $filteredGames = get_all_games();
+    $filteredGames = get_all_games(); // Obține toate jocurile
 }
 
+// Verifică dacă jocul a fost adăugat în wishlist
 if (isset($_GET['add_to_wishlist'])) {
     $game_title = $_GET['add_to_wishlist'];
     $success = add_to_wishlist($user_id, $game_title);
@@ -111,39 +115,40 @@ if (isset($_GET['add_to_wishlist'])) {
             color: #c0c0c0;
             margin-right: 10px;
         }
-        
+
         .logout-button {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #FF5733; 
+            background-color: #FF5733;
             color: white;
             font-size: 16px;
-            text-decoration: none; 
-            border-radius: 5px; 
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); 
-            transition: background-color 0.3s, transform 0.3s; 
+            text-decoration: none;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, transform 0.3s;
         }
 
         .logout-button:hover {
-            background-color: #C70039; 
-            transform: translateY(-3px); 
+            background-color: #C70039;
+            transform: translateY(-3px);
         }
-        .wishlist-button {
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #FF5733; /* Culoarea de fundal */
-    color: white; /* Culoarea textului */
-    font-size: 16px;
-    text-decoration: none;
-    border-radius: 5px; /* Colțuri rotunjite */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Umbră */
-    transition: background-color 0.3s, transform 0.3s; /* Tranziție pentru hover */
-}
 
-.wishlist-button:hover {
-    background-color: #C70039; /* Culoare schimbată la hover */
-    transform: translateY(-3px); /* Mișcare la hover */
-}
+        .wishlist-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #FF5733;
+            color: white;
+            font-size: 16px;
+            text-decoration: none;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        .wishlist-button:hover {
+            background-color: #C70039;
+            transform: translateY(-3px);
+        }
     </style>
 </head>
 <body>
@@ -153,7 +158,6 @@ if (isset($_GET['add_to_wishlist'])) {
 
         <h1>Game Store</h1>
 
-        <!-- Formularul de selectare a categoriei -->
         <form action="index.php" method="get" style="text-align: center; margin-bottom: 20px;">
             <label for="category" style="font-size: 18px;">Selectați un gen:</label>
             <select name="category" id="category" style="padding: 5px; font-size: 16px;">
@@ -166,7 +170,6 @@ if (isset($_GET['add_to_wishlist'])) {
             <button type="submit" style="padding: 5px 10px; font-size: 16px;">Filtrare</button>
         </form>
 
-        <!-- Afișarea jocurilor filtrate -->
         <div class="game-list">
             <?php if (count($filteredGames) > 0): ?>
                 <?php foreach ($filteredGames as $game): ?>
