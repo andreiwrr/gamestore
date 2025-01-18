@@ -47,7 +47,7 @@ if ($selectedCategory) {
 
     <!-- Display the filtered games -->
     <div class="game-list">
-        <?php if (count($filteredGames) > 0): ?>
+        <?php if (!empty($filteredGames)): ?>
             <?php foreach ($filteredGames as $game): ?>
                 <div class="game">
                     <h3><?= htmlspecialchars($game['title']); ?></h3>
