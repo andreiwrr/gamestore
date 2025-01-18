@@ -1,6 +1,6 @@
 <?php
 session_start();
-require 'db.php'; 
+require 'db.php'; // Asigură-te că ai inclus corect fișierul de conexiune la baza de date
 
 // Verifică dacă utilizatorul este conectat
 if (!isset($_SESSION['user_id'])) {
@@ -33,7 +33,6 @@ if (isset($_GET['remove_game_id'])) {
     }
     mysqli_stmt_close($stmt_remove_game);
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -176,3 +175,4 @@ if (isset($_GET['remove_game_id'])) {
 
 </body>
 </html>
+
